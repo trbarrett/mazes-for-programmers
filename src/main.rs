@@ -29,14 +29,13 @@ enum Direction {
     West
 }
 
-
 const ROWS: usize = 8;
 const COLUMNS: usize = 8;
 
 const DRAW_PADDING: f64 = 80.0;
 const DRAW_CELL_SIZE: f64 = 40.0;
-const FULL_DRAW_WIDTH: f64 = DRAW_CELL_SIZE * ROWS as f64;
-const FULL_DRAW_HEIGHT: f64 = DRAW_CELL_SIZE * COLUMNS as f64;
+const FULL_DRAW_WIDTH: f64 = DRAW_CELL_SIZE * COLUMNS as f64;
+const FULL_DRAW_HEIGHT: f64 = DRAW_CELL_SIZE * ROWS as f64;
 
 
 fn at_eastern_boundary(column: usize) -> bool { column == COLUMNS - 1 }
