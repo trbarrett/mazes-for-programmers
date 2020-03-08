@@ -23,6 +23,15 @@ impl GridCell {
             west_open: false,
         }
     }
+
+    pub fn is_open_to(&self, dir: Direction) -> bool {
+        match dir {
+            Direction::North => self.north_open,
+            Direction::East  => self.east_open,
+            Direction::South => self.south_open,
+            Direction::West  => self.west_open,
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -215,13 +224,12 @@ impl ImmutableGrid {
 }
 
 impl Iterator for Iter {
-    // It would be better to take a reference to Grid Cell perhaps?
-    type Item = (GridPos, GridCell);
+    type Item = GridCell;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.cell_iter.next() {
             None => None,
-            Some((pos, cell)) => Some((pos, cell))
+            Some((_, cell)) => Some(cell)
         }
     }
 }
