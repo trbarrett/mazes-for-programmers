@@ -1,3 +1,4 @@
+use std::slice::Iter;
 
 // use tuple struct for Row and Col
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -9,7 +10,7 @@ pub struct Col(pub usize);
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GridPos {
     pub row: Row,
-    pub col: Col, 
+    pub col: Col,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -28,5 +29,9 @@ impl Direction {
             Direction::South => Direction::North,
             Direction::West  => Direction::East,
         }
+    }
+
+    pub fn iter() -> impl Iterator<Item = Direction> {
+        [Direction::North, Direction::South, Direction::East, Direction::West].iter().copied()
     }
 }

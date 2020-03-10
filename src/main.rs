@@ -6,6 +6,7 @@ use piston_window::*;
 pub mod grid_primitives;
 pub mod immutable_grid;
 pub mod mutable_linked_grid;
+pub mod dijkstra;
 
 use grid_primitives::*;
 use immutable_grid::*;

@@ -9,5 +9,6 @@ edition = "2018"
 [dependencies]
 piston_window = "0.98.0"
 im = "14.2.0"
+rpds = "0.7.0"
 rand = "0.7.3"
 itertools = "0.8.2"

@@ -72,7 +72,7 @@ impl ImmutableGrid {
         pos.col == Col(0)
     }
 
-    fn get_relative_cell_pos(&self, pos: GridPos, dir: Direction) -> Option<GridPos> {
+    pub fn get_relative_cell_pos(&self, pos: GridPos, dir: Direction) -> Option<GridPos> {
         if self.at_southern_boundary(pos) && dir == Direction::South {
             return None
         }
@@ -120,7 +120,7 @@ impl ImmutableGrid {
         }
     }
 
-    fn get(&self, pos: &GridPos) -> Option<&GridCell> {
+    pub fn get(&self, pos: &GridPos) -> Option<&GridCell> {
         self.cells.get(&pos)
     }
 
@@ -155,6 +155,12 @@ impl ImmutableGrid {
                 }).collect();
             (row, row_indexes)
         }).collect()
+    }
+
+    pub fn positions(&self) -> Vec<GridPos> {
+        let mut positions: Vec<GridPos> = self.iter().map(|cell| cell.pos).collect();
+        positions.sort();
+        positions
     }
 
     pub fn run_sidewinder_algorithm(self) -> Self {
