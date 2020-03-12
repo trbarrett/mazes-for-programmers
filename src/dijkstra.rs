@@ -9,6 +9,7 @@ pub struct Dijkstra<'a> {
     pub root: GridPos,
     pub distances: HashTrieMap<GridPos, u32>,
     pub frontier: Queue<GridPos>,
+    pub max_distance: u32,
 }
 
 impl<'a> Dijkstra<'a> {
@@ -18,6 +19,7 @@ impl<'a> Dijkstra<'a> {
             root: root,
             distances: HashTrieMap::new().insert(root, 0u32),
             frontier: Queue::new().enqueue(root),
+            max_distance: 0u32,
         } 
     }
 
@@ -37,13 +39,17 @@ impl<'a> Dijkstra<'a> {
             let cell = self.grid.get(&pos).unwrap();
             let d = self.distances.get(&pos).unwrap();
             let mut distances = self.distances.clone();
+            let mut max_distance = self.max_distance;
 
             Direction::iter().for_each(|dir| {
-                let linked_pos = self.grid.get_relative_cell_pos(cell.pos, dir);
-                if let Some(linked_pos) = linked_pos {
-                    if !distances.contains_key(&linked_pos) {
-                        distances = distances.insert(linked_pos, d + 1);
-                        frontier = frontier.enqueue(linked_pos);
+                if cell.is_open_to(dir) {
+                    let linked_pos = self.grid.get_relative_cell_pos(cell.pos, dir);
+                    if let Some(linked_pos) = linked_pos {
+                        if !distances.contains_key(&linked_pos) {
+                            distances = distances.insert(linked_pos, d + 1);
+                            frontier = frontier.enqueue(linked_pos);
+                            if d + 1 > max_distance { max_distance += 1  }
+                        }
                     }
                 }
             });
@@ -53,6 +59,7 @@ impl<'a> Dijkstra<'a> {
                 root: self.root,
                 distances: distances,
                 frontier: frontier,
+                max_distance: max_distance,
             } 
         })
     }
