@@ -163,6 +163,27 @@ impl ImmutableGrid {
         positions
     }
 
+    pub fn run_binary_tree_algorithm(self) -> Self {
+        let mut rng = rand::thread_rng();
+        self.positions().iter().fold(self.clone(), |grid, &pos| {
+            let mut neighbors: Vec<Direction> = Vec::new();
+            if !grid.at_eastern_boundary(pos) {
+                neighbors.push(Direction::East);
+            }
+
+            if !grid.at_northern_boundary(pos) {
+                neighbors.push(Direction::North);
+            } 
+
+            let dir = neighbors.iter().choose(&mut rng);
+            match dir {
+                Some(&dir) => grid.link_cells(pos, dir),
+                None => grid,
+            }
+        })
+    }
+
+
     pub fn run_sidewinder_algorithm(self) -> Self {
         let mut rng = rand::thread_rng();
         self.grid_rows().iter().fold(self.clone(), |grid, (_, row)| {
@@ -188,26 +209,6 @@ impl ImmutableGrid {
             })    
         })
     }
-
-    //fn binary_tree_algorithm(grid: HashMap<GridPos, Cell>) -> HashMap<GridPos, Cell> {
-    //    let mut rng = rand::thread_rng();
-    //    grid.keys().fold(grid.clone(), |acc, k| {
-    //        let mut neighbors: Vec<Direction> = Vec::new();
-    //        if !at_eastern_boundary(k.col) {
-    //            neighbors.push(Direction::East);
-    //        }
-
-    //        if !at_northern_boundary(k.row) {
-    //            neighbors.push(Direction::North);
-    //        } 
-
-    //        let dir = neighbors.iter().choose(&mut rng);
-    //        match dir {
-    //            Some(&dir) => link_cells(acc, *k, dir),
-    //            None => acc,
-    //        }
-    //    })
-    //}
 
 
 }

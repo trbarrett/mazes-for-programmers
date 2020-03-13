@@ -1,7 +1,9 @@
 extern crate piston_window;
 extern crate rand;
+extern crate chrono;
 
 use piston_window::*;
+use chrono::prelude::*;
 
 pub mod grid_primitives;
 pub mod immutable_grid;
@@ -70,19 +72,44 @@ fn render_grid<G, T>(grid: &ImmutableGrid, context: &Context, graphics: &mut G)
     });
 }
 
-fn background_color_for(dijkstra: &Dijkstra, pos: GridPos) -> Option<types::Color> {
-    let maximum = dijkstra.max_distance as f32;
+fn background_color_for(dijkstra: &Dijkstra, max_distance: f32, pos: GridPos) -> Option<types::Color> {
     let distance = dijkstra.distances.get(&pos);
     distance.map( |&d| {
-        let intensity = (maximum - (d as f32)) / maximum;
+        let intensity = (max_distance - (d as f32)) / max_distance;
         let dark = 255_f32 * intensity;
         let bright = 128_f32 + (127_f32 * intensity);
         [dark/255_f32, bright/255_f32, dark/255_f32, 1.0]
     })
 }
 
-fn render_dijkstra<G, T>(grid: &ImmutableGrid, dijkstra: &Dijkstra, context: &Context, g: &mut G)
+fn render_dijkstra<G, T>(
+    grid: &ImmutableGrid,
+    dijkstra: &Option<Vec<Dijkstra>>,
+    start_time: &Option<DateTime<Utc>>,
+    context: &Context,
+    g: &mut G)
         where G: Graphics<Texture = T>, T: ImageSize {
+
+    if dijkstra.is_none() { return; }
+
+    let start_time = start_time.unwrap();
+    let dijkstra_states = dijkstra.as_ref().unwrap();
+
+    let max_distance = dijkstra_states.last().unwrap().max_distance as f32;
+
+    // depending on how long has passed since the start_time display
+    // a different dijkstra state
+    let now = Utc::now();
+    let duration = now - start_time;
+    let count = (duration.num_milliseconds() / 10) as usize;
+
+    let dijkstra = 
+        if count >= dijkstra_states.len() {
+            dijkstra_states.last().unwrap()
+        } else {
+            &dijkstra_states[count]
+        };
+
 
     grid.iter().for_each(|cell| {
         let pos = cell.pos;
@@ -90,7 +117,7 @@ fn render_dijkstra<G, T>(grid: &ImmutableGrid, dijkstra: &Dijkstra, context: &Co
         // Note: row 0 should be at the bottom
         let y1 = (ROWS - 1 - pos.row.0) as f64 * DRAW_CELL_SIZE + DRAW_PADDING;
 
-        if let Some(color) = background_color_for(dijkstra, pos) {
+        if let Some(color) = background_color_for(dijkstra, max_distance, pos) {
             let rectangle = Rectangle::new(color);
             let dims = [x1, y1, DRAW_CELL_SIZE, DRAW_CELL_SIZE];
             rectangle.draw(dims, &draw_state::DrawState::default(), context.transform, g);
@@ -102,9 +129,8 @@ fn main() {
     // Immutable Grid implementation
     // ---------------------------------------
     // 
-    let mut grid = ImmutableGrid::new(COLUMNS, ROWS);
-    //grid = binary_tree_algorithm(grid);
-    grid = grid.run_sidewinder_algorithm();
+    let mut grid = ImmutableGrid::new(COLUMNS, ROWS)
+                   .run_sidewinder_algorithm();
 
     // Mutable Linked Cells implementation
     // ---------------------------------------
@@ -113,8 +139,8 @@ fn main() {
     //grid.run_binary_tree_algorithm();
     //grid.run_sidewinder_algorithm();
 
-    let mut dijkstra = Dijkstra::new(&grid, GridPos { col : Col(COLUMNS/2 - 1), row : Row(ROWS/2 - 1)});
-    dijkstra = dijkstra.run_to_completion();
+    let mut dijkstraStartTime: Option<DateTime<Utc>> = None;
+    let mut dijkstra: Option<Vec<Dijkstra>> = None;
 
 
     let canvas_sie =
@@ -128,15 +154,27 @@ fn main() {
     while let Some(event) = window.next() {
         window.draw_2d(&event, |context, graphics, _device| {
             clear([1.0; 4], graphics);
-            render_dijkstra(&grid, &dijkstra, &context, graphics);
+            render_dijkstra(&grid, &dijkstra, &dijkstraStartTime, &context, graphics);
             render_grid(&grid, &context, graphics);
         });
 
-        if let Some(Button::Keyboard(Key::Space)) = event.press_args() {
-            //grid = ImmutableGrid::new(COLUMNS, ROWS);
-            //grid = grid.run_sidewinder_algorithm();
-            //dijkstra = Dijkstra::new(&grid, GridPos { col : Col(0), row : Row(0)});
-            //dijkstra = dijkstra.run_to_completion();
+        if let Some(Button::Keyboard(Key::S)) = event.press_args() {
+            grid = ImmutableGrid::new(COLUMNS, ROWS)
+                   .run_sidewinder_algorithm();
+            dijkstra = None;
+        }
+
+        if let Some(Button::Keyboard(Key::B)) = event.press_args() {
+            grid = ImmutableGrid::new(COLUMNS, ROWS)
+                   .run_binary_tree_algorithm();
+            dijkstra = None;
+        }
+
+        if let Some(Button::Keyboard(Key::D)) = event.press_args() {
+            let d = Dijkstra::new(GridPos::new(Row(ROWS/2 - 1), Col(COLUMNS/2 - 1)))
+                    .run_to_completion_all(&grid);
+            dijkstra = Some(d);
+            dijkstraStartTime = Some(Utc::now());
         }
 
         if let Some(args) = event.update_args() {

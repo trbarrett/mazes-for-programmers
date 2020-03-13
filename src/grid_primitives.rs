@@ -13,6 +13,12 @@ pub struct GridPos {
     pub col: Col,
 }
 
+impl GridPos {
+    pub fn new(row: Row, col: Col) -> Self {
+        GridPos { row: row, col: col}
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Direction {
     North,
