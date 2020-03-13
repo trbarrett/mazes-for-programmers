@@ -15,13 +15,14 @@ use immutable_grid::*;
 use mutable_linked_grid::*;
 use dijkstra::*;
 
-const ROWS: usize = 20;
-const COLUMNS: usize = 20;
+const ROWS: usize = 70;
+const COLUMNS: usize = 70;
 
 const DRAW_PADDING: f64 = 20.0;
-const DRAW_CELL_SIZE: f64 = 25.0;
+const DRAW_CELL_SIZE: f64 = 11.0;
 const FULL_DRAW_WIDTH: f64 = DRAW_CELL_SIZE * COLUMNS as f64;
 const FULL_DRAW_HEIGHT: f64 = DRAW_CELL_SIZE * ROWS as f64;
+const DIJKSTRA_SPEED: i64 = 30; // smaller is faster
 
 fn render_grid<G, T>(grid: &ImmutableGrid, context: &Context, graphics: &mut G)
         where G: Graphics<Texture = T>, T: ImageSize {
@@ -72,7 +73,8 @@ fn render_grid<G, T>(grid: &ImmutableGrid, context: &Context, graphics: &mut G)
     });
 }
 
-fn background_color_for(dijkstra: &Dijkstra, max_distance: f32, pos: GridPos) -> Option<types::Color> {
+fn background_color_for(dijkstra: &Dijkstra, pos: GridPos) -> Option<types::Color> {
+    let max_distance = dijkstra.max_distance as f32;
     let distance = dijkstra.distances.get(&pos);
     distance.map( |&d| {
         let intensity = (max_distance - (d as f32)) / max_distance;
@@ -84,40 +86,34 @@ fn background_color_for(dijkstra: &Dijkstra, max_distance: f32, pos: GridPos) ->
 
 fn render_dijkstra<G, T>(
     grid: &ImmutableGrid,
-    dijkstra: &Option<Vec<Dijkstra>>,
+    dijkstra: &Option<Dijkstra>,
     start_time: &Option<DateTime<Utc>>,
     context: &Context,
     g: &mut G)
         where G: Graphics<Texture = T>, T: ImageSize {
 
     if dijkstra.is_none() { return; }
-
     let start_time = start_time.unwrap();
-    let dijkstra_states = dijkstra.as_ref().unwrap();
-
-    let max_distance = dijkstra_states.last().unwrap().max_distance as f32;
+    let dijkstra = dijkstra.as_ref().unwrap();
 
     // depending on how long has passed since the start_time display
     // a different dijkstra state
     let now = Utc::now();
     let duration = now - start_time;
-    let count = (duration.num_milliseconds() / 10) as usize;
-
-    let dijkstra = 
-        if count >= dijkstra_states.len() {
-            dijkstra_states.last().unwrap()
-        } else {
-            &dijkstra_states[count]
-        };
-
+    let count = (duration.num_milliseconds() / DIJKSTRA_SPEED) as usize;
 
     grid.iter().for_each(|cell| {
         let pos = cell.pos;
+        let distance = dijkstra.distances.get(&pos).unwrap();
+        if *distance as usize > count {
+            return;
+        }
+
         let x1 = pos.col.0 as f64 * DRAW_CELL_SIZE + DRAW_PADDING;
         // Note: row 0 should be at the bottom
         let y1 = (ROWS - 1 - pos.row.0) as f64 * DRAW_CELL_SIZE + DRAW_PADDING;
 
-        if let Some(color) = background_color_for(dijkstra, max_distance, pos) {
+        if let Some(color) = background_color_for(dijkstra, pos) {
             let rectangle = Rectangle::new(color);
             let dims = [x1, y1, DRAW_CELL_SIZE, DRAW_CELL_SIZE];
             rectangle.draw(dims, &draw_state::DrawState::default(), context.transform, g);
@@ -140,8 +136,7 @@ fn main() {
     //grid.run_sidewinder_algorithm();
 
     let mut dijkstraStartTime: Option<DateTime<Utc>> = None;
-    let mut dijkstra: Option<Vec<Dijkstra>> = None;
-
+    let mut dijkstra: Option<Dijkstra> = None;
 
     let canvas_sie =
         [ FULL_DRAW_WIDTH + DRAW_PADDING * 2f64,
@@ -172,7 +167,7 @@ fn main() {
 
         if let Some(Button::Keyboard(Key::D)) = event.press_args() {
             let d = Dijkstra::new(GridPos::new(Row(ROWS/2 - 1), Col(COLUMNS/2 - 1)))
-                    .run_to_completion_all(&grid);
+                    .run_to_completion(&grid);
             dijkstra = Some(d);
             dijkstraStartTime = Some(Utc::now());
         }
